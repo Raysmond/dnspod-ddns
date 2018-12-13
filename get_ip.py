@@ -1,7 +1,10 @@
+#! /usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import re
 import logging
 import socket
-from urllib import request, error, parse
+import requests
 
 # 匹配合法 IP 地址
 regex_ip = re.compile(
@@ -16,14 +19,15 @@ regex_ip = re.compile(
 def get_ip():
     return (get_ip_by_ipip()
         or  get_ip_by_httpbin()
-        or  get_ip_by_httpbin_direct_1()
+        # or  get_ip_by_httpbin_direct_1()
         or  get_ip_by_httpbin_direct_2() )
     
 # 这几个函数会在 DNS 遭受污染时失效
 def get_ip_by_ipip():
     url = 'http://myip.ipip.net/'
     try:
-        resp = request.urlopen(url=url, timeout=10).read()
+        # resp = request.urlopen(url=url, timeout=10).read()
+        resp = requests.get(url, timeout=10).content
         return regex_ip.match(resp.decode("utf-8")).group(1)
     except Exception as e:
         logging.warning("get_ip_by_ipip FAILED, error: %s", str(e))
@@ -32,7 +36,9 @@ def get_ip_by_ipip():
 def get_ip_by_httpbin():
     url = 'http://www.httpbin.org/ip'
     try:
-        resp = request.urlopen(url=url, timeout=10).read()
+        # resp = request.urlopen(url=url, timeout=10).read()
+        resp = requests.get(url, timeout=10).content
+
         return regex_ip.match(resp.decode("utf-8")).group(1)
     except Exception as e:
         logging.warning("get_ip_by_httpbin FAILED, error: %s", str(e))
@@ -43,8 +49,9 @@ def get_ip_by_httpbin():
 def get_ip_by_httpbin_direct_1():
     url = 'http://52.5.182.176/ip'
     try:
-        req = request.Request(url=url, method='GET', headers={'Host': 'www.httpbin.org'})
-        resp = request.urlopen(req).read()
+        # req = request.Request(url=url, method='GET', headers={'Host': 'www.httpbin.org'})
+        # resp = request.urlopen(req).read()
+        resp = requests.get(url, headers={'Host': 'www.httpbin.org'}).content
         return regex_ip.match(resp.decode("utf-8")).group(1)
     except Exception as e:
         logging.warning("get_ip_by_httpbin_direct_1 FAILED, error: %s", str(e))
@@ -53,8 +60,9 @@ def get_ip_by_httpbin_direct_1():
 def get_ip_by_httpbin_direct_2():
     url = 'http://52.44.230.61/ip'
     try:
-        req = request.Request(url=url, method='GET', headers={'Host': 'www.httpbin.org'})
-        resp = request.urlopen(req).read()
+        # req = request.Request(url=url, method='GET', headers={'Host': 'www.httpbin.org'})
+        # resp = request.urlopen(req).read()
+        resp = requests.get(url, headers={'Host': 'www.httpbin.org'}).content
         return regex_ip.match(resp.decode("utf-8")).group(1)
     except Exception as e:
         logging.warning("get_ip_by_httpbin_direct_2 FAILED, error: %s", str(e))

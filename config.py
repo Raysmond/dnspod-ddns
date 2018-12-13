@@ -1,3 +1,6 @@
+#! /usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import os
 import getopt
 import sys
@@ -5,7 +8,7 @@ import logging
 
 # 定义配置文件目录
 # linux
-config_path = '/etc/dnspod/ddnsrc'
+config_path = 'ddnspod.cfg'
 # windows
 if os.name == 'nt':
     config_path = 'ddnspod.cfg'
@@ -85,7 +88,7 @@ def read_config_from_argv():
 
 def save_config():
     try:
-        save_config_to_env()
+        # save_config_to_env()
         save_config_to_file()
     except NotImplementedError as err:
         logging.error("FAILED to save config:" + str(err))

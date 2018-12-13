@@ -1,15 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import asyncio
+# import asyncio
 import os
 import json
+import pprint
 import signal
 import functools
 import logging
 import socket
 import time
-from urllib import request, error, parse
+# from urllib import request, error, parse
+import requests
 from config import read_config, save_config, check_config, cfg
 from get_ip import get_ip
 
@@ -21,15 +23,18 @@ def header():
 
 def get_record_id(domain, sub_domain):
     url = 'https://dnsapi.cn/Record.List'
-    params = parse.urlencode({
+    data = {
         'login_token': cfg['login_token'],
         'format': 'json',
         'domain': domain
-    })
-    req = request.Request(url=url, data=params.encode('utf-8'), method='POST', headers=header())
+    }
+    # params = parse.urlencode(data)
+    # req = request.Request(url=url, data=params.encode('utf-8'), method='POST', headers=header())
     try:
-        resp = request.urlopen(req).read().decode()
-    except (error.HTTPError, error.URLError, socket.timeout):
+        # resp = request.urlopen(req).read().decode()
+        resp = requests.post(url, data=data, headers=header()).content
+        print resp
+    except Exception as err:
         return None
     records = json.loads(resp).get('records', {})
     for item in records:
@@ -40,16 +45,19 @@ def get_record_id(domain, sub_domain):
 
 def update_record():
     url = 'https://dnsapi.cn/Record.Ddns'
-    params = parse.urlencode({
+    data = {
         'login_token': cfg['login_token'],
         'format': 'json',
         'domain': cfg['domain'],
         'sub_domain': cfg['sub_domain'],
         'record_id': cfg['record_id'],
-        'record_line': '默认'
-    })
-    req = request.Request(url=url, data=params.encode('utf-8'), method='POST', headers=header())
-    resp = request.urlopen(req).read().decode()
+        'record_line': u'默认' # 通过API记录线路获得
+    }
+    pprint.pprint(data)
+    # params = parse.urlencode(data)
+    # req = request.Request(url=url, data=params.encode('utf-8'), method='POST', headers=header())
+    # resp = request.urlopen(req).read().decode()
+    resp = requests.post(url, data=data, headers=header()).content
     records = json.loads(resp)
     cfg['last_update_time'] = str(time.gmtime())
     logging.info("record updated: %s" % records)
@@ -59,6 +67,7 @@ def update_record():
 def main():
     while 1:
         current_ip = get_ip()
+        print 'current ip: %s' % current_ip
         if current_ip:
             # 对于拥有多个出口 IP 负载均衡的服务器，上面的 get_ip() 函数会在几个 ip 之间不停切换
             # 然后频繁进入这个判断，进行 update_record()，然后很快就会触发 API Limited 了
@@ -66,6 +75,7 @@ def main():
             
             ip_count = int(cfg['ip_count'])
             ip_pool = cfg['ip_pool'].split(',')[:ip_count]
+            print ip_pool
             cfg['current_ip'] = current_ip
             if current_ip not in ip_pool:
                 # new ip found
@@ -87,7 +97,7 @@ def main():
 
 def ask_exit(_sig_name):
         logging.warning('got signal {}: exit'.format(_sig_name))
-        loop.stop()
+        # loop.stop()
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)-8s : %(message)s')
@@ -98,15 +108,16 @@ if __name__ == '__main__':
     logging.info("get record_id: %s" % str(cfg['record_id']))
     logging.info("watching ip for ddns: %s.%s" % (cfg['sub_domain'], cfg['domain']))
 
-    loop = asyncio.get_event_loop()
-    for sig_name in ('SIGINT', 'SIGTERM'):
-        try:
-            loop.add_signal_handler(getattr(signal, sig_name), functools.partial(ask_exit, sig_name))
-        except NotImplementedError:
-            pass  # 使兼容 WINDOWS
+    # loop = asyncio.get_event_loop()
+    # for sig_name in ('SIGINT', 'SIGTERM'):
+    #     try:
+    #         loop.add_signal_handler(getattr(signal, sig_name), functools.partial(ask_exit, sig_name))
+    #     except NotImplementedError:
+    #         pass  # 使兼容 WINDOWS
     try:
-        loop.run_until_complete(main())
+        # loop.run_until_complete(main())
+        main()
     except (KeyboardInterrupt, RuntimeError):
         logging.info('stop...')
-    finally:
-        loop.close()
+    # finally:
+    #     loop.close()
